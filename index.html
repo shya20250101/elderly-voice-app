@@ -149,8 +149,6 @@
         }
 
         .btn-green { background-color: var(--line-green); color: white; }
-        .btn-blue { background-color: var(--primary-blue); color: white; }
-        .btn-red { background-color: var(--danger-red); color: white; }
         .btn-gray { background-color: #6C757D; color: white; }
 
         /* 測試面板 */
@@ -198,6 +196,7 @@
         </div>
     </div>
 
+    <!-- 互動彈窗 -->
     <div class="modal" id="infoModal">
         <div class="modal-content">
             <div class="modal-title" id="modalTitle">標題</div>
@@ -275,11 +274,10 @@
             handleSpeechResult(cmd);
         }
 
-        // 容錯強化版語音辨識解析
+        // 語音指令解析與容錯
         function handleSpeechResult(text) {
             const statusText = document.getElementById('statusText');
 
-            // 1. 醫療救援優先
             if (text.includes("醫院") || text.includes("119") || text.includes("救援") || text.includes("救護車")) {
                 statusText.innerText = `正在撥打：${settings.medicalTarget}`;
                 speak(`正在撥打 ${settings.medicalTarget}`, () => {
@@ -288,7 +286,6 @@
                 return;
             }
 
-            // 2. 公共服務
             if (text.includes("活動") || text.includes("中心")) {
                 statusText.innerText = "正在開啟活動中心網頁...";
                 speak("正在開啟活動中心", () => window.open(settings.activityCenterUrl, '_blank'));
@@ -301,25 +298,20 @@
                 return;
             }
 
-            // 3. 聯絡人容錯比對（包含常見語意與同音字誤判，如「未辨」、「照」、「著」）
             const keywords = ["找", "幫我", "打給", "LINE", "賴", "未辨", "照", "著", "招"];
             let isContactCmd = keywords.some(kw => text.includes(kw));
 
             if (isContactCmd || text.length >= 2) {
                 let targetName = text;
-                
-                // 過濾掉所有前綴詞與常見的誤判贅字
                 keywords.concat(["搜尋", "聯絡", "電話"]).forEach(word => {
                     targetName = targetName.replaceAll(word, "");
                 });
-                
                 targetName = targetName.trim();
 
-                // 如果過濾完發現還是有名字（例如「釋放」）
                 if (targetName.length > 0) {
-                    statusText.innerText = `正在為您尋找 LINE 好友：${targetName}`;
-                    speak(`正在為您開啟 LINE 搜尋 ${targetName}`, () => {
-                        showLINEJumpModal(targetName);
+                    statusText.innerText = `已鎖定對象：${targetName}`;
+                    speak(`已鎖定，請點擊按鈕開啟 LINE 並貼上名字`, () => {
+                        showLINEModalWithCopy(targetName);
                     });
                     return;
                 }
@@ -329,18 +321,29 @@
             speak("聽不清楚，請再說一次");
         }
 
-        // 喚起 LINE
-        function showLINEJumpModal(name) {
+        // 彈出視窗：自動複製名字並引導開啟 LINE
+        function showLINEModalWithCopy(name) {
             document.getElementById('modalTitle').innerText = `💬 LINE 快速連線`;
             document.getElementById('modalBody').innerHTML = `
-                <div style="font-size: 22px; margin-bottom: 10px;">已鎖定對象：<br><b style="color: #06C755; font-size: 28px;">${name}</b></div>
-                <div style="font-size: 16px; color: #666;">點擊下方按鈕將直接開啟手機 LINE。</div>
+                <div style="font-size: 20px; margin-bottom: 8px;">已為您複製對象：</div>
+                <div style="color: #06C755; font-size: 30px; font-weight: bold; margin-bottom: 12px;">【 ${name} 】</div>
+                <div style="font-size: 15px; color: #555; line-height: 1.4;">
+                    點擊下方按鈕將開啟 LINE。<br>
+                    進入後請在搜尋框<b>長按並貼上</b>即可！
+                </div>
             `;
-            document.getElementById('modalPrimaryBtn').innerText = `前往開啟 LINE 找「${name}」`;
+            document.getElementById('modalPrimaryBtn').innerText = `開啟 LINE 找「${name}」`;
+            
             document.getElementById('modalPrimaryBtn').onclick = function() {
+                // 自動將名字複製到手機剪貼簿
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(name);
+                }
+                // 開啟 LINE App
                 window.location.href = "line://nv/chat";
                 closeModal();
             };
+            
             document.getElementById('infoModal').style.display = 'flex';
         }
 
