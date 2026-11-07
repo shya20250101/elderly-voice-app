@@ -285,4 +285,69 @@
                 return;
             }
 
-            if (text.includes("活動") || text
+            if (text.includes("活動") || text.includes("中心")) {
+                statusText.innerText = "正在開啟活動中心網頁...";
+                speak("正在開啟活動中心", () => window.open(settings.activityCenterUrl, '_blank'));
+                return;
+            }
+
+            if (text.includes("福利") || text.includes("補助")) {
+                statusText.innerText = "正在開啟老人福利網...";
+                speak("正在開啟福利網", () => window.open(settings.welfareUrl, '_blank'));
+                return;
+            }
+
+            const keywords = ["找", "幫我", "打給", "LINE", "賴", "未辨", "照", "著", "招"];
+            let isContactCmd = keywords.some(kw => text.includes(kw));
+
+            if (isContactCmd || text.length >= 2) {
+                let targetName = text;
+                keywords.concat(["搜尋", "聯絡", "電話"]).forEach(word => {
+                    targetName = targetName.replaceAll(word, "");
+                });
+                targetName = targetName.trim();
+
+                if (targetName.length > 0) {
+                    statusText.innerText = `已鎖定對象：${targetName}`;
+                    speak(`已鎖定，請點擊按鈕開啟 LINE 並貼上名字`, () => {
+                        showLINEModalWithUniversalLink(targetName);
+                    });
+                    return;
+                }
+            }
+
+            statusText.innerText = `未辨識：「${text}」，請再試一次`;
+            speak("聽不清楚，請再說一次");
+        }
+
+        // 使用 LINE 官方通用連結強制開啟 App，並同步複製人名
+        function showLINEModalWithUniversalLink(name) {
+            document.getElementById('modalTitle').innerText = `💬 LINE 快速連線`;
+            document.getElementById('modalBody').innerHTML = `
+                <div style="font-size: 20px; margin-bottom: 8px;">已為您複製對象：</div>
+                <div style="color: #06C755; font-size: 30px; font-weight: bold; margin-bottom: 12px;">【 ${name} 】</div>
+                <div style="font-size: 15px; color: #555; line-height: 1.4;">
+                    點擊下方按鈕將強制開啟 LINE。<br>
+                    進入後請在搜尋框<b>長按並貼上</b>即可！
+                </div>
+            `;
+            document.getElementById('modalPrimaryBtn').innerText = `開啟 LINE 找「${name}」`;
+            
+            document.getElementById('modalPrimaryBtn').onclick = function() {
+                // 1. 自動複製名字到手機剪貼簿
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(name);
+                }
+                // 2. 透過 LINE Universal Link 強制喚起 App
+                window.location.href = "https://line.me/R/";
+                closeModal();
+            };
+            
+            document.getElementById('infoModal').style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('infoModal').style.display = 'none'; }
+        function openSettings() { alert("設定已開啟"); }
+    </script>
+</body>
+</html>
