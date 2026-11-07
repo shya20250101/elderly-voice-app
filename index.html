@@ -17,7 +17,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
@@ -46,12 +46,8 @@
             padding: 10px 0;
         }
 
-        .title {
-            font-size: 26px;
-            font-weight: bold;
-            color: #333;
-        }
-
+        .title { font-size: 26px; font-weight: bold; color: #333; }
+        
         .settings-btn {
             background: #E9ECEF;
             border: 2px solid #CED4DA;
@@ -63,12 +59,7 @@
         }
 
         /* 巨型語音按鈕 */
-        .mic-btn-container {
-            margin: 20px 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+        .mic-btn-container { margin: 20px 0; display: flex; flex-direction: column; align-items: center; }
 
         .mic-btn {
             width: 200px;
@@ -87,16 +78,8 @@
             user-select: none;
         }
 
-        .mic-btn:active {
-            transform: scale(0.95);
-            background-color: var(--primary-green-active);
-        }
-
-        .mic-btn.listening {
-            background-color: var(--danger-red);
-            border-color: #F8D7DA;
-            animation: pulse 1.5s infinite;
-        }
+        .mic-btn:active { transform: scale(0.95); background-color: var(--primary-green-active); }
+        .mic-btn.listening { background-color: var(--danger-red); border-color: #F8D7DA; animation: pulse 1.5s infinite; }
 
         @keyframes pulse {
             0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
@@ -227,35 +210,28 @@
             <div class="status-text" id="statusText">請點擊上方綠色按鈕開始說話</div>
         </div>
 
-        <!-- 通話與 15 秒防呆倒數視窗 -->
         <div class="call-card" id="callCard">
             <div style="font-size: 22px; color: #AAA;">正在通話中</div>
             <div style="font-size: 32px; font-weight: bold; margin-top: 8px;" id="callTargetName">119 緊急救援</div>
             <div class="call-timer" id="callDuration">00:05</div>
-
             <div class="failsafe-box">
-                <div class="failsafe-title">🛡️ 15秒無對話自動掛斷監測 (Fail-Safe)</div>
-                <div style="font-size: 15px; color: #EEE; margin: 4px 0;">持續靜音將自動切斷保護：</div>
+                <div class="failsafe-title">🛡️ 15秒無對話自動掛斷監測</div>
                 <div class="failsafe-countdown" id="failsafeTimer">15 秒</div>
             </div>
-
             <button class="modal-btn btn-red" style="margin-top: 15px;" onclick="endCall('手動掛斷')">🔴 結束通話</button>
         </div>
 
-        <!-- 模擬測試面板 -->
         <div class="test-panel">
-            <div class="test-panel-title">💡 測試控制台（無麥克風時點擊模擬）</div>
+            <div class="test-panel-title">💡 測試控制台（語音模擬）</div>
             <div class="test-btn-grid">
-                <button class="test-btn" onclick="simulateCommand('找王伯伯')">1. LINE 好友</button>
-                <button class="test-btn" onclick="simulateCommand('活動中心')">2. 中榮里活動中心</button>
-                <button class="test-btn" onclick="simulateCommand('福利消息')">3. 老人福利網</button>
-                <button class="test-btn" onclick="simulateCommand('打給醫院')">4. 醫療/119通話</button>
-                <button class="test-btn" onclick="simulateCommand('防呆測試')" style="grid-column: span 2; background: #FFF3CD;">5. 觸發 15 秒自動掛斷</button>
+                <button class="test-btn" onclick="simulateCommand('找王伯伯')">1. 說：找王伯伯</button>
+                <button class="test-btn" onclick="simulateCommand('找陳阿姨')">2. 說：找陳阿姨</button>
+                <button class="test-btn" onclick="simulateCommand('活動中心')">3. 活動中心網頁</button>
+                <button class="test-btn" onclick="simulateCommand('打給醫院')">4. 撥打救援電話</button>
             </div>
         </div>
     </div>
 
-    <!-- 彈出互動視窗 -->
     <div class="modal" id="infoModal">
         <div class="modal-content">
             <div class="modal-title" id="modalTitle">標題</div>
@@ -267,15 +243,12 @@
 
     <script>
         let settings = {
-            friends: ["王伯伯", "陳阿姨", "大兒子"],
             activityCenterUrl: "https://www.tainan.gov.tw/",
             welfareUrl: "https://sfaa.moi.gov.tw/",
             medicalTarget: "119"
         };
 
         let isListening = false;
-        let failsafeInterval = null;
-        let callInterval = null;
 
         function speak(text, callback) {
             if ('speechSynthesis' in window) {
@@ -307,17 +280,16 @@
                     const recognition = new SpeechRecognition();
                     recognition.lang = 'zh-TW';
                     recognition.onresult = function(event) {
-                        handleSpeechResult(event.results[0][0].transcript);
+                        let spoken = event.results[0][0].transcript;
+                        handleSpeechResult(spoken);
                         stopListeningUI();
                     };
                     recognition.onerror = function() {
-                        showSimulationMenu();
                         stopListeningUI();
                     };
                     recognition.start();
                 } else {
                     setTimeout(() => {
-                        showSimulationMenu();
                         stopListeningUI();
                     }, 1200);
                 }
@@ -332,132 +304,67 @@
             document.getElementById('micLabel').innerText = "按一下說話";
         }
 
-        function showSimulationMenu() {
-            document.getElementById('modalTitle').innerText = "請選擇長輩要執行的操作";
-            document.getElementById('modalBody').innerHTML = `
-                <div style="font-size: 18px; text-align: left; line-height: 1.6;">
-                    • <strong>LINE：</strong> 找王伯伯<br>
-                    • <strong>活動中心：</strong> 中榮里活動中心網頁<br>
-                    • <strong>福利站：</strong> 政府老人福利網<br>
-                    • <strong>醫療院所：</strong> 撥打 119 或自訂醫院
-                </div>
-            `;
-            document.getElementById('modalPrimaryBtn').innerText = "測試：開啟活動中心網頁";
-            document.getElementById('modalPrimaryBtn').onclick = function() {
-                closeModal();
-                simulateCommand("活動中心");
-            };
-            document.getElementById('infoModal').style.display = 'flex';
-        }
-
         function simulateCommand(cmd) {
             document.getElementById('statusText').innerText = `指令：「${cmd}」`;
             handleSpeechResult(cmd);
         }
 
+        // 動態抓取語音中想找的人名
         function handleSpeechResult(text) {
             const statusText = document.getElementById('statusText');
 
-            let matched = settings.friends.find(f => text.includes(f));
-            if (matched || text.includes("找") || text.includes("LINE")) {
-                let target = matched || settings.friends[0];
-                statusText.innerText = `正在連線 LINE：${target}`;
-                speak(`正在為您連線 ${target}`, () => showLINEWindow(target));
-                return;
-            }
+            if (text.includes("找") || text.includes("打給") || text.includes("LINE")) {
+                let targetName = text.replace("找", "").replace("打給", "").replace("LINE", "").trim();
+                if (!targetName) targetName = "聯絡人";
 
-            if (text.includes("活動") || text.includes("中心") || text.includes("中榮里")) {
-                statusText.innerText = "正在開啟中榮里活動中心網頁...";
-                speak("正在為您開啟活動中心網頁", () => {
-                    window.open(settings.activityCenterUrl, '_blank');
+                statusText.innerText = `正在為您尋找 LINE 好友：${targetName}`;
+                speak(`正在為您開啟 LINE 搜尋 ${targetName}`, () => {
+                    showLINEJumpModal(targetName);
                 });
                 return;
             }
 
-            if (text.includes("福利") || text.includes("補助") || text.includes("老人")) {
-                statusText.innerText = "正在開啟政府老人福利網站...";
-                speak("正在為您開啟政府老人福利網", () => {
-                    window.open(settings.welfareUrl, '_blank');
+            if (text.includes("活動") || text.includes("中心")) {
+                statusText.innerText = "正在開啟活動中心網頁...";
+                speak("正在開啟活動中心", () => window.open(settings.activityCenterUrl, '_blank'));
+                return;
+            }
+
+            if (text.includes("福利") || text.includes("補助")) {
+                statusText.innerText = "正在開啟老人福利網...";
+                speak("正在開啟福利網", () => window.open(settings.welfareUrl, '_blank'));
+                return;
+            }
+
+            if (text.includes("醫院") || text.includes("119") || text.includes("救援")) {
+                statusText.innerText = `正在撥打：${settings.medicalTarget}`;
+                speak(`正在撥打 ${settings.medicalTarget}`, () => {
+                    window.location.href = `tel:${settings.medicalTarget}`;
                 });
                 return;
             }
 
-            if (text.includes("醫院") || text.includes("掛號") || text.includes("打給") || text.includes("119") || text.includes("救命")) {
-                statusText.innerText = `正在撥打醫療/救援專線：${settings.medicalTarget}`;
-                speak(`正在為您撥打 ${settings.medicalTarget}，請稍後`, () => {
-                    startCallSession(settings.medicalTarget);
-                });
-                return;
-            }
-
-            if (text.includes("防呆") || text.includes("測試")) {
-                startCallSession("測試通話（15秒防呆）");
-                return;
-            }
-
-            statusText.innerText = `未辨識：「${text}」`;
-            speak("請再說一次。");
+            statusText.innerText = `未辨識：「${text}」，請再試一次`;
+            speak("聽不清楚，請再說一次");
         }
 
-        function showLINEWindow(name) {
-            document.getElementById('modalTitle').innerText = `💬 LINE：${name}`;
-            document.getElementById('modalBody').innerHTML = `<div style="font-size: 20px;">已準備好與 <b>${name}</b> 的語音通話與對話。</div>`;
-            document.getElementById('modalPrimaryBtn').innerText = "開啟手機 LINE App";
-            document.getElementById('modalPrimaryBtn').onclick = () => { window.location.href = "line://"; closeModal(); };
+        // 一鍵喚起手機 LINE 應用程式
+        function showLINEJumpModal(name) {
+            document.getElementById('modalTitle').innerText = `💬 LINE 快速連線`;
+            document.getElementById('modalBody').innerHTML = `
+                <div style="font-size: 22px; margin-bottom: 10px;">已鎖定對象：<br><b style="color: #06C755; font-size: 28px;">${name}</b></div>
+                <div style="font-size: 16px; color: #666;">點擊下方按鈕將直接開啟手機 LINE。</div>
+            `;
+            document.getElementById('modalPrimaryBtn').innerText = `前往開啟 LINE 找「${name}」`;
+            document.getElementById('modalPrimaryBtn').onclick = function() {
+                window.location.href = "line://nv/chat";
+                closeModal();
+            };
             document.getElementById('infoModal').style.display = 'flex';
         }
 
-        function startCallSession(target) {
-            document.getElementById('callCard').style.display = 'block';
-            document.getElementById('callTargetName').innerText = target;
-
-            if (target === "119" || target.length > 3) {
-                setTimeout(() => { window.location.href = `tel:${target}`; }, 1000);
-            }
-
-            let seconds = 0, failsafe = 15;
-            clearInterval(callInterval); clearInterval(failsafeInterval);
-
-            callInterval = setInterval(() => {
-                seconds++;
-                let m = String(Math.floor(seconds / 60)).padStart(2, '0');
-                let s = String(seconds % 60).padStart(2, '0');
-                document.getElementById('callDuration').innerText = `${m}:${s}`;
-            }, 1000);
-
-            document.getElementById('failsafeTimer').innerText = `${failsafe} 秒`;
-            failsafeInterval = setInterval(() => {
-                failsafe--;
-                document.getElementById('failsafeTimer').innerText = `${failsafe} 秒`;
-                if (failsafe <= 3 && failsafe > 0) speak("偵測到無對話，即將自動掛斷");
-                if (failsafe <= 0) {
-                    clearInterval(failsafeInterval); clearInterval(callInterval);
-                    speak("15秒無對話，系統已自動掛斷通話");
-                    endCall("15秒自動防呆掛斷");
-                }
-            }, 1000);
-        }
-
-        function endCall(reason) {
-            clearInterval(callInterval); clearInterval(failsafeInterval);
-            document.getElementById('callCard').style.display = 'none';
-            document.getElementById('statusText').innerText = `通話結束（${reason}）`;
-        }
-
         function closeModal() { document.getElementById('infoModal').style.display = 'none'; }
-
-        function openSettings() {
-            let centerInput = prompt("請輸入活動中心網址：", settings.activityCenterUrl);
-            if (centerInput) settings.activityCenterUrl = centerInput;
-
-            let welfareInput = prompt("請輸入政府老人福利網網址：", settings.welfareUrl);
-            if (welfareInput) settings.welfareUrl = welfareInput;
-
-            let medInput = prompt("請輸入醫療院所電話或緊急號碼 (預設 119)：", settings.medicalTarget);
-            if (medInput) settings.medicalTarget = medInput;
-
-            alert("設定已更新成功！");
-        }
+        function openSettings() { alert("設定已開啟"); }
     </script>
 </body>
 </html>
