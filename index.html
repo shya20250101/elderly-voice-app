@@ -191,7 +191,7 @@
             <div class="test-panel-title">💡 測試控制台（語音模擬）</div>
             <div class="test-btn-grid">
                 <button class="test-btn" onclick="simulateCommand('找釋放')">1. 說：找釋放</button>
-                <button class="test-btn" onclick="simulateCommand('找王伯伯')">2. 說：找王伯伯</button>
+                <button class="test-btn" onclick="simulateCommand('未辨釋放')">2. 誤判：未辨釋放</button>
                 <button class="test-btn" onclick="simulateCommand('活動中心')">3. 活動中心網頁</button>
                 <button class="test-btn" onclick="simulateCommand('打給醫院')">4. 撥打救援電話</button>
             </div>
@@ -275,33 +275,20 @@
             handleSpeechResult(cmd);
         }
 
-        // 精準動態抓取人名（修正原本寫死王伯伯的問題）
+        // 容錯強化版語音辨識解析
         function handleSpeechResult(text) {
             const statusText = document.getElementById('statusText');
 
-            if (text.includes("找") || text.includes("打給") || text.includes("LINE")) {
-                // 將常見的語助詞與動詞清除，精準保留後方的人名
-                let targetName = text
-                    .replace("幫我", "")
-                    .replace("尋找", "")
-                    .replace("找", "")
-                    .replace("打給", "")
-                    .replace("LINE", "")
-                    .replace("賴", "")
-                    .trim();
-
-                // 如果只講了「找」而沒有名字，才給予預設提示
-                if (!targetName) {
-                    targetName = "王伯伯"; 
-                }
-
-                statusText.innerText = `正在為您尋找 LINE 好友：${targetName}`;
-                speak(`正在為您開啟 LINE 搜尋 ${targetName}`, () => {
-                    showLINEJumpModal(targetName);
+            // 1. 醫療救援優先
+            if (text.includes("醫院") || text.includes("119") || text.includes("救援") || text.includes("救護車")) {
+                statusText.innerText = `正在撥打：${settings.medicalTarget}`;
+                speak(`正在撥打 ${settings.medicalTarget}`, () => {
+                    window.location.href = `tel:${settings.medicalTarget}`;
                 });
                 return;
             }
 
+            // 2. 公共服務
             if (text.includes("活動") || text.includes("中心")) {
                 statusText.innerText = "正在開啟活動中心網頁...";
                 speak("正在開啟活動中心", () => window.open(settings.activityCenterUrl, '_blank'));
@@ -314,19 +301,35 @@
                 return;
             }
 
-            if (text.includes("醫院") || text.includes("119") || text.includes("救援")) {
-                statusText.innerText = `正在撥打：${settings.medicalTarget}`;
-                speak(`正在撥打 ${settings.medicalTarget}`, () => {
-                    window.location.href = `tel:${settings.medicalTarget}`;
+            // 3. 聯絡人容錯比對（包含常見語意與同音字誤判，如「未辨」、「照」、「著」）
+            const keywords = ["找", "幫我", "打給", "LINE", "賴", "未辨", "照", "著", "招"];
+            let isContactCmd = keywords.some(kw => text.includes(kw));
+
+            if (isContactCmd || text.length >= 2) {
+                let targetName = text;
+                
+                // 過濾掉所有前綴詞與常見的誤判贅字
+                keywords.concat(["搜尋", "聯絡", "電話"]).forEach(word => {
+                    targetName = targetName.replaceAll(word, "");
                 });
-                return;
+                
+                targetName = targetName.trim();
+
+                // 如果過濾完發現還是有名字（例如「釋放」）
+                if (targetName.length > 0) {
+                    statusText.innerText = `正在為您尋找 LINE 好友：${targetName}`;
+                    speak(`正在為您開啟 LINE 搜尋 ${targetName}`, () => {
+                        showLINEJumpModal(targetName);
+                    });
+                    return;
+                }
             }
 
             statusText.innerText = `未辨識：「${text}」，請再試一次`;
             speak("聽不清楚，請再說一次");
         }
 
-        // 一鍵喚起手機 LINE 應用程式
+        // 喚起 LINE
         function showLINEJumpModal(name) {
             document.getElementById('modalTitle').innerText = `💬 LINE 快速連線`;
             document.getElementById('modalBody').innerHTML = `
@@ -336,7 +339,7 @@
             document.getElementById('modalPrimaryBtn').innerText = `前往開啟 LINE 找「${name}」`;
             document.getElementById('modalPrimaryBtn').onclick = function() {
                 window.location.href = "line://nv/chat";
-                closeManager = closeModal();
+                closeModal();
             };
             document.getElementById('infoModal').style.display = 'flex';
         }
